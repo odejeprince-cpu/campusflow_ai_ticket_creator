@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 
 from flask import Flask, jsonify, render_template_string, request
 
@@ -624,9 +625,21 @@ def short_name(provider):
     return provider["name"].split(" (")[0]
 
 
+def pick_tickets_file():
+    # Use main.py's tickets file if its folder is writable (your laptop).
+    # Otherwise use /tmp (hosting servers with a read-only app folder).
+    folder = os.path.dirname(os.path.abspath(FILE))
+    if os.access(folder, os.W_OK):
+        return FILE
+    return os.path.join(tempfile.gettempdir(), "tickets.json")
+
+
+TICKETS_FILE = pick_tickets_file()
+
+
 def load_tickets():
-    if os.path.exists(FILE):
-        with open(FILE, "r") as f:
+    if os.path.exists(TICKETS_FILE):
+        with open(TICKETS_FILE, "r") as f:
             return json.load(f)
     return []
 
@@ -639,7 +652,7 @@ def save_ticket(title, description):
         "description": description,
     }
     tickets.append(ticket)
-    with open(FILE, "w") as f:
+    with open(TICKETS_FILE, "w") as f:
         json.dump(tickets, f, indent=4)
     return ticket
 
